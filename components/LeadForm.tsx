@@ -3,15 +3,29 @@
 import { useState } from 'react';
 import { submitLead } from '@/app/actions/leads';
 import { useToast } from '@/components/Toast';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
+import { buildWhatsAppUrl, formatPhoneEcuador } from '@/lib/whatsapp';
+import { SUPER_ADMIN_PHONE } from '@/lib/constants';
 
 interface LeadFormProps {
   propertyId: string;
+  propertyTitle: string;
+  agentPhone?: string | null;
 }
 
-export const LeadForm = ({ propertyId }: LeadFormProps) => {
+export const LeadForm = ({ propertyId, propertyTitle, agentPhone }: LeadFormProps) => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+
+  const targetPhone = (agentPhone && formatPhoneEcuador(agentPhone))
+    ? formatPhoneEcuador(agentPhone)
+    : SUPER_ADMIN_PHONE.replace(/\D/g, '');
+
+  const openWhatsApp = (text: string) => {
+    const url = buildWhatsAppUrl(targetPhone, text);
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +36,17 @@ export const LeadForm = ({ propertyId }: LeadFormProps) => {
       showToast(result.error, 'error');
       return;
     }
-    showToast('Mensaje enviado correctamente. Un asesor te contactará pronto.', 'success');
+    const whatsappText = `Hola, tengo una consulta sobre la propiedad "${propertyTitle}": ${message.trim()}`;
+    openWhatsApp(whatsappText);
+    showToast('Mensaje enviado. Se abrió WhatsApp para contactar al asesor.', 'success');
     setMessage('');
+  };
+
+  const handleWhatsAppOnly = () => {
+    const text = message.trim()
+      ? `Hola, tengo una consulta sobre la propiedad "${propertyTitle}": ${message.trim()}`
+      : `Hola, me interesa la propiedad "${propertyTitle}". ¿Podrían darme más información?`;
+    openWhatsApp(text);
   };
 
   return (
@@ -46,13 +69,23 @@ export const LeadForm = ({ propertyId }: LeadFormProps) => {
           placeholder="Estoy interesado en esta propiedad..."
         />
       </div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-2xl bg-amber-400 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-400/25 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-slate-900"
-      >
-        {loading ? 'Enviando...' : 'Enviar consulta'}
-      </button>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-400 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-400/25 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-slate-900"
+        >
+          {loading ? 'Enviando...' : 'Enviar consulta'}
+        </button>
+        <button
+          type="button"
+          onClick={handleWhatsAppOnly}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[#25D366] bg-[#25D366]/10 py-2.5 text-sm font-semibold text-[#128C7E] hover:bg-[#25D366]/20 focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 dark:bg-[#25D366]/20 dark:text-[#25D366]"
+        >
+          <WhatsAppIcon className="h-5 w-5" />
+          Contactar por WhatsApp
+        </button>
+      </div>
     </form>
   );
 };

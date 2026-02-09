@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import { PropertyImage } from '@/components/PropertyImage';
 import { Bed, Bath, Square } from 'lucide-react';
 import type { Property } from '@/types';
 
@@ -21,7 +21,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
     <Link href={`/properties/${property.id}`} className="group block">
       <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 shadow-lg shadow-slate-300/20 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl hover:shadow-slate-300/30 dark:border-slate-700/80 dark:bg-slate-900/80 dark:shadow-slate-950/50 dark:hover:shadow-slate-950/60">
         <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800 sm:h-52">
-          <Image
+          <PropertyImage
             src={property.image}
             alt={property.title}
             fill

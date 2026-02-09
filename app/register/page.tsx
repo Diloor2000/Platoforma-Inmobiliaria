@@ -7,7 +7,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/Toast';
 import { Navbar } from '@/components/Navbar';
 import { createProfileOnRegister } from '@/app/actions/auth';
-import { UserPlus, Mail, Lock, User } from 'lucide-react';
+import { SUPER_ADMIN_PHONE } from '@/lib/constants';
+import { buildWhatsAppUrl, formatPhoneEcuador } from '@/lib/whatsapp';
+import { UserPlus, Mail, Lock, User, Briefcase, Phone } from 'lucide-react';
 
 const MIN_LENGTH = 8;
 const HAS_UPPERCASE = /[A-Z]/;
@@ -27,20 +29,28 @@ function validatePassword(pwd: string): string | null {
   return null;
 }
 
+type UserType = 'cliente' | 'corredor';
+
 export const RegisterPage = () => {
+  const [userType, setUserType] = useState<UserType>('cliente');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
   const passwordError = useMemo(() => validatePassword(password), [password]);
-  const canSubmit = !passwordError && password.length >= MIN_LENGTH;
+  const canSubmit = !passwordError && password.length >= MIN_LENGTH && (userType === 'cliente' || phone.trim().length > 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordError || !canSubmit) {
-      showToast(passwordError || 'La contraseña no cumple los requisitos', 'error');
+      showToast(passwordError || (userType === 'corredor' && !phone.trim() ? 'El teléfono es obligatorio para corredores' : 'La contraseña no cumple los requisitos'), 'error');
+      return;
+    }
+    if (userType === 'corredor' && !phone.trim()) {
+      showToast('El número de teléfono es obligatorio para corredores', 'error');
       return;
     }
     setLoading(true);
@@ -56,30 +66,41 @@ export const RegisterPage = () => {
       return;
     }
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert(
-        {
-          id: data.user.id,
-          email: data.user.email ?? email,
-          full_name: fullName || null,
-          role: 'admin',
-          status: 'pending_approval',
-        },
-        { onConflict: 'id' }
-      );
+      const isCliente = userType === 'cliente';
+      const profileData = {
+        id: data.user.id,
+        email: data.user.email ?? email,
+        full_name: fullName || null,
+        role: isCliente ? 'user' : 'admin',
+        status: isCliente ? 'approved' : 'pending_approval',
+        ...(userType === 'corredor' && phone.trim() ? { phone: phone.trim() } : {}),
+      };
+      const { error: profileError } = await supabase.from('profiles').upsert(profileData, { onConflict: 'id' });
       setLoading(false);
       if (profileError) {
         const fallback = await createProfileOnRegister(
           data.user.id,
           data.user.email ?? email,
-          fullName
+          fullName,
+          userType,
+          phone.trim() || undefined
         );
         if (fallback.error) {
           showToast(profileError.message || fallback.error, 'error');
           return;
         }
       }
-      showToast('Registro exitoso. Tu cuenta está en revisión.', 'success');
-      router.replace('/espera');
+      if (isCliente) {
+        showToast('Registro exitoso. Bienvenido a Elite Estate.', 'success');
+        router.replace('/');
+      } else {
+        const phoneFormatted = formatPhoneEcuador(phone) ? `+${formatPhoneEcuador(phone)}` : (phone.trim() || '—');
+        const msg = `Hola Admin, un nuevo corredor se ha registrado en Elite Estate. Nombre: ${fullName || email}, Teléfono: ${phoneFormatted}. Por favor, revisa el Dashboard para aprobarlo.`;
+        const whatsappUrl = buildWhatsAppUrl(SUPER_ADMIN_PHONE, msg);
+        if (whatsappUrl) window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        showToast('Registro exitoso. Tu perfil profesional está en revisión.', 'success');
+        router.replace('/espera');
+      }
       router.refresh();
     } else {
       setLoading(false);
@@ -97,13 +118,41 @@ export const RegisterPage = () => {
             </div>
             <div>
               <h1 className="text-xl font-semibold text-slate-900 dark:text-white sm:text-2xl">
-                Registro de asesor
+                Crear cuenta
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Únete a Elite Estate. Tu cuenta será revisada por un administrador.
+                Únete a Elite Estate como cliente o corredor inmobiliario.
               </p>
             </div>
           </div>
+
+          <div className="mt-6 flex gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1 backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-800/50">
+            <button
+              type="button"
+              onClick={() => setUserType('cliente')}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                userType === 'cliente'
+                  ? 'bg-white text-amber-600 shadow-md dark:bg-slate-700 dark:text-amber-400'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <User className="h-4 w-4" />
+              Soy Cliente
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserType('corredor')}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                userType === 'corredor'
+                  ? 'bg-white text-amber-600 shadow-md dark:bg-slate-700 dark:text-amber-400'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <Briefcase className="h-4 w-4" />
+              Soy Corredor
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label htmlFor="fullName" className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
@@ -137,6 +186,28 @@ export const RegisterPage = () => {
                 placeholder="tu@email.com"
               />
             </div>
+            {userType === 'corredor' && (
+              <div>
+                <label htmlFor="phone" className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <Phone className="h-4 w-4" />
+                  Número de Teléfono <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onBlur={() => {
+                    const formatted = formatPhoneEcuador(phone);
+                    if (formatted && phone.trim()) setPhone('+' + formatted);
+                  }}
+                  required
+                  autoComplete="tel"
+                  className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-amber-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:focus:border-amber-400 dark:focus:bg-slate-900"
+                  placeholder="099 123 4567 o +593 99 123 4567"
+                />
+              </div>
+            )}
             <div>
               <label htmlFor="password" className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
                 <Lock className="h-4 w-4" />

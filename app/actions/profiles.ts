@@ -2,14 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
 export const approveProfile = async (profileId: string) => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autorizado' };
-  const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  const isAdmin = me?.role === 'admin' || user.email?.toLowerCase() === 'diegoloor124@gmail.com';
-  if (!isAdmin) return { error: 'Solo administradores pueden aprobar perfiles' };
+  const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  if (!isSuperAdmin) return { error: 'Solo el Super Admin puede aprobar perfiles' };
   const { error } = await supabase
     .from('profiles')
     .update({ status: 'approved' })
@@ -23,9 +23,8 @@ export const rejectProfile = async (profileId: string) => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autorizado' };
-  const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  const isAdmin = me?.role === 'admin' || user.email?.toLowerCase() === 'diegoloor124@gmail.com';
-  if (!isAdmin) return { error: 'Solo administradores pueden rechazar perfiles' };
+  const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  if (!isSuperAdmin) return { error: 'Solo el Super Admin puede rechazar perfiles' };
   const { error } = await supabase
     .from('profiles')
     .update({ status: 'rejected' })

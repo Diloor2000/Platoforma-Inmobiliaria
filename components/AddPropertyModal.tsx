@@ -10,6 +10,7 @@ import { Plus, X } from 'lucide-react';
 export const AddPropertyModal = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -17,9 +18,13 @@ export const AddPropertyModal = () => {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
+    const file = formData.get('image');
+    const hasImageFile = file instanceof File && file.size > 0 && file.type.startsWith('image/');
+    setUploadingImage(hasImageFile);
     setLoading(true);
     const result = await createProperty(formData);
     setLoading(false);
+    setUploadingImage(false);
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -113,6 +118,14 @@ export const AddPropertyModal = () => {
                 </select>
               </div>
               <div>
+                <label htmlFor="agent_name_modal" className={labelClass}>Nombre asesor responsable <span className="text-red-500">*</span></label>
+                <input id="agent_name_modal" name="agent_name" type="text" required className={inputClass} placeholder="Ej. María García" />
+              </div>
+              <div>
+                <label htmlFor="agent_phone_modal" className={labelClass}>Teléfono contacto / WhatsApp (opcional)</label>
+                <input id="agent_phone_modal" name="agent_phone" type="tel" className={inputClass} placeholder="099 123 4567 o +593" />
+              </div>
+              <div>
                 <label htmlFor="image" className={labelClass}>Imagen (opcional)</label>
                 <input id="image" name="image" type="file" accept="image/*" className={inputClass + ' file:mr-2 file:rounded-xl file:border-0 file:bg-amber-400/20 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-amber-700 dark:file:bg-amber-400/10 dark:file:text-amber-300'} />
               </div>
@@ -133,7 +146,7 @@ export const AddPropertyModal = () => {
                   disabled={loading}
                   className="flex-1 rounded-2xl bg-amber-400 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-400/25 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-slate-900"
                 >
-                  {loading ? 'Creando...' : 'Crear propiedad'}
+                  {loading ? (uploadingImage ? 'Subiendo imagen...' : 'Creando...') : 'Crear propiedad'}
                 </button>
               </div>
             </form>

@@ -1,5 +1,13 @@
 export const SUPER_ADMIN_EMAIL = 'diegoloor124@gmail.com';
 
+/** Solo este email es Super Admin; el resto de admins en BD se tratan como Asesores. */
+export function isSuperAdmin(email: string | null | undefined): boolean {
+  return email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+}
+
+/** Número del Super Admin para WhatsApp (Ecuador). Sin +, ej: 593991234567 */
+export const SUPER_ADMIN_PHONE = process.env.NEXT_PUBLIC_SUPER_ADMIN_PHONE ?? '593991234567';
+
 export const MOCK_PROPERTIES = [
   {
     id: 'mock-1',

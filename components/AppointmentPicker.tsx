@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createAppointment } from '@/app/actions/appointments';
+import { createWebAppointment } from '@/app/actions/appointments';
 import { useToast } from '@/components/Toast';
 import { Calendar, Clock } from 'lucide-react';
 
@@ -31,13 +31,13 @@ export const AppointmentPicker = ({ propertyId }: AppointmentPickerProps) => {
       return;
     }
     setLoading(true);
-    const result = await createAppointment(propertyId, date, time, notes);
+    const result = await createWebAppointment(propertyId, date, time, notes);
     setLoading(false);
     if (result.error) {
       showToast(result.error, 'error');
       return;
     }
-    showToast('Cita agendada. Un asesor te confirmará pronto.', 'success');
+    showToast(`Cita solicitada con éxito. El asesor ${result.agentName} revisará tu solicitud.`, 'success');
     setDate('');
     setTime('');
     setNotes('');
@@ -91,9 +91,14 @@ export const AppointmentPicker = ({ propertyId }: AppointmentPickerProps) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-2xl bg-amber-400 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-400/25 transition hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-slate-900"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-400/25 transition hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-slate-900"
       >
-        {loading ? 'Agendando...' : 'Solicitar cita'}
+        {loading ? 'Agendando...' : (
+          <>
+            <Calendar className="h-5 w-5" />
+            Solicitar cita
+          </>
+        )}
       </button>
     </form>
   );

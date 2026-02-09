@@ -14,6 +14,7 @@ const labelClass = 'mb-1 block text-xs font-medium text-slate-600 dark:text-slat
 
 export default function NewPropertyPage() {
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -21,9 +22,13 @@ export default function NewPropertyPage() {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
+    const file = formData.get('image');
+    const hasImageFile = file instanceof File && file.size > 0 && file.type.startsWith('image/');
+    setUploadingImage(hasImageFile);
     setLoading(true);
     const result = await createProperty(formData);
     setLoading(false);
+    setUploadingImage(false);
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -134,6 +139,27 @@ export default function NewPropertyPage() {
               </select>
             </div>
             <div>
+              <label htmlFor="agent_name" className={labelClass}>Nombre del asesor responsable <span className="text-red-500">*</span></label>
+              <input
+                id="agent_name"
+                name="agent_name"
+                type="text"
+                required
+                className={inputClass}
+                placeholder="Ej. María García"
+              />
+            </div>
+            <div>
+              <label htmlFor="agent_phone" className={labelClass}>Teléfono de contacto / WhatsApp (opcional)</label>
+              <input
+                id="agent_phone"
+                name="agent_phone"
+                type="tel"
+                className={inputClass}
+                placeholder="099 123 4567 o +593 99 123 4567"
+              />
+            </div>
+            <div>
               <label htmlFor="image" className={labelClass}>Imagen de la propiedad (opcional)</label>
               <input
                 id="image"
@@ -155,7 +181,7 @@ export default function NewPropertyPage() {
                 disabled={loading}
                 className="flex-1 rounded-2xl bg-amber-400 py-2.5 text-sm font-semibold text-slate-900 shadow-xl shadow-amber-400/25 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-slate-900"
               >
-                {loading ? 'Creando...' : 'Crear propiedad'}
+                {loading ? (uploadingImage ? 'Subiendo imagen...' : 'Creando...') : 'Crear propiedad'}
               </button>
             </div>
           </form>

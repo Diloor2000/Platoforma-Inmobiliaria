@@ -12,6 +12,11 @@ const nextConfig = {
         hostname: 'images.pexels.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'rvrhrtvbayoyujmndxjn.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
   },
 };

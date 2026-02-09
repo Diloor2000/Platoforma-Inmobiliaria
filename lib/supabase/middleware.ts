@@ -27,6 +27,42 @@ export const updateSession = async (request: NextRequest) => {
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
   const isLogin = request.nextUrl.pathname.startsWith('/login');
   const isEspera = request.nextUrl.pathname === '/espera';
+  const isMisCitas = request.nextUrl.pathname === '/mis-citas';
+  const isNewProperty = request.nextUrl.pathname === '/properties/new';
+  const isEditProperty = /^\/properties\/[^/]+\/edit$/.test(request.nextUrl.pathname);
+
+  if (isEditProperty && !user) {
+    const redirectEdit = new URL('/login', request.url);
+    redirectEdit.searchParams.set('redirectTo', request.nextUrl.pathname);
+    return NextResponse.redirect(redirectEdit);
+  }
+
+  if (isMisCitas && !user) {
+    const redirect = new URL('/login', request.url);
+    redirect.searchParams.set('redirectTo', '/mis-citas');
+    return NextResponse.redirect(redirect);
+  }
+
+  if (isNewProperty && !user) {
+    const redirect = new URL('/login', request.url);
+    redirect.searchParams.set('redirectTo', '/properties/new');
+    return NextResponse.redirect(redirect);
+  }
+  if (isNewProperty && user) {
+    const isSuperAdminNew = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    if (!isSuperAdminNew) {
+      const { data: profileNew } = await supabase
+        .from('profiles')
+        .select('role, status')
+        .eq('id', user.id)
+        .single();
+      const canEditNew =
+        profileNew?.role === 'admin' && profileNew?.status === 'approved';
+      if (!canEditNew) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    }
+  }
 
   if (isDashboard && !user) {
     const redirect = new URL('/login', request.url);
@@ -45,6 +81,9 @@ export const updateSession = async (request: NextRequest) => {
       .eq('id', user.id)
       .single();
 
+    if (profile?.role === 'user') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
     const isApprovedAdmin = profile?.role === 'admin' && profile?.status === 'approved';
     if (!isApprovedAdmin) {
       return NextResponse.redirect(new URL('/espera', request.url));

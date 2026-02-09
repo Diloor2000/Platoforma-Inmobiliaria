@@ -11,6 +11,10 @@ export interface Property {
   description: string;
   created_at?: string;
   agent_id?: string | null;
+  /** Teléfono de contacto del asesor para esta propiedad (WhatsApp) */
+  agent_phone?: string | null;
+  /** Nombre del asesor responsable de la propiedad */
+  agent_name?: string | null;
 }
 
 export type ProfileRole = 'admin' | 'user';
@@ -23,6 +27,7 @@ export interface Profile {
   full_name?: string;
   role: ProfileRole;
   status: ProfileStatus;
+  phone?: string;
 }
 
 export interface Lead {
@@ -46,6 +51,9 @@ export interface Appointment {
   appointment_time: string;
   notes?: string | null;
   created_at?: string;
+  /** Nombre del asesor asignado (de la propiedad al crear la cita) */
+  agent_name?: string | null;
+  status?: string | null;
 }
 
 export interface AppointmentWithDetails extends Appointment {

@@ -4,11 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/components/ThemeProvider';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { User } from '@supabase/supabase-js';
 import { Moon, Sun } from 'lucide-react';
 
+type ProfileRole = 'admin' | 'user';
+type ProfileStatus = string;
+
 const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<{ role: ProfileRole; status: ProfileStatus } | null>(null);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -21,6 +26,25 @@ const Navbar = () => {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => setProfile(data ?? null));
+  }, [user?.id]);
+
+  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isApprovedAdvisor =
+    isSuperAdmin || (profile?.role === 'admin' && profile?.status === 'approved');
+  const isClient = profile?.role === 'user';
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-slate-200/80 bg-slate-50/95 shadow-lg backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/95">
@@ -52,14 +76,32 @@ const Navbar = () => {
           >
             Inicio
           </Link>
-          {user && (
+
+          {user && isClient && (
             <Link
-              href="/dashboard"
+              href="/mis-citas"
               className="hidden text-sm font-medium text-slate-600 hover:text-amber-500 dark:text-slate-400 sm:inline-block"
             >
-              Panel
+              Mis Citas
             </Link>
           )}
+          {user && isApprovedAdvisor && (
+            <>
+              <Link
+                href="/dashboard"
+                className="hidden text-sm font-medium text-slate-600 hover:text-amber-500 dark:text-slate-400 sm:inline-block"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/dashboard#inventario"
+                className="hidden text-sm font-medium text-slate-600 hover:text-amber-500 dark:text-slate-400 sm:inline-block"
+              >
+                Inventario
+              </Link>
+            </>
+          )}
+
           {user ? (
             <form action="/auth/signout" method="post">
               <button
